@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "proportional_ec"
-dependencies = ["beautifulsoup4", "requests"]
+dependencies = ["beautifulsoup4", "requests", "matplotlib", "numpy", "geopandas", "topojson[dev]"]
 requires-python = ">=3.10"
 
 authors = [{name="Robert McArthur"}]
