@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "proportional_ec"
-dependencies = ["beautifulsoup4", "requests", "matplotlib", "numpy", "geopandas", "topojson[dev]"]
+dependencies = ["beautifulsoup4", "requests", "matplotlib", "numpy", "geopandas", "folium", "matplotlib", "mapclassify"]
 requires-python = ">=3.10"
 
 authors = [{name="Robert McArthur"}]
@@ -75,7 +75,7 @@ target-version = "py39"
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 select = ["ALL"]
-ignore = ["EXE002", "FA100", "E501", "D"]
+ignore = ["EXE002", "FA100", "E501", "D", "S311"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
