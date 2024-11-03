@@ -71,10 +71,15 @@ def process_candidate_totals(
 
 
 def run_election(
-    method: Callable[[dict[Candidate, Vote]], dict[Candidate, Seats]],
+    election_method: Callable[[dict[Candidate, Vote]], dict[Candidate, Seats]],
     state_candidate_counts: dict[StatePo, dict[Candidate, Vote]],
-):
-    pass
+) -> dict[StatePo, dict[Candidate, Seats]]:
+    state_results = {}
+
+    for state in state_candidate_counts:
+        state_results[state] = election_method(state_candidate_counts[state])
+
+    return state_results
 
 
 def calculate_quota(ec_votes: Vote, state_total_votes: Vote) -> Vote:
