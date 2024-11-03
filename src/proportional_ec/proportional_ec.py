@@ -76,12 +76,3 @@ def process_candidate_totals(
 
 def calculate_quota(ec_votes: Vote, state_total_votes: Vote) -> Vote:
     return state_total_votes // ec_votes
-
-
-if __name__ == "__main__":
-    print(
-        process_electoral_college_per_year(
-            Path("data/electoral_college/electoral_college.csv")
-        )
-    )
-    print(process_candidate_totals(Path("data/state_votes/1976-2020-president.csv")))
