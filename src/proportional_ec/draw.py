@@ -112,7 +112,8 @@ def draw_borders(ax: plt.Axes, border_lines: set[tuple[float, float]]) -> None:
 
 
 def draw_state_names(
-    ax: plt.Axes, state_centroids: dict[str, tuple[float, float]]
+    ax: plt.Axes,
+    state_centroids: dict[str, tuple[float, float]],
 ) -> None:
     for state in state_centroids:
         ax.text(
@@ -143,14 +144,3 @@ def draw_ec_map(
     ax.axis("off")
     plt.savefig("out.png")
     plt.show()
-
-
-if __name__ == "__main__":
-    topo_file = Path("tiles.topo.json")
-    gdf = load_topo_data(topo_file)
-
-    state_polygons, state_centroids, border_lines = (
-        generate_polygons_centroids_and_lines(gdf)
-    )
-
-    draw_ec_map(state_polygons, state_centroids, border_lines)
