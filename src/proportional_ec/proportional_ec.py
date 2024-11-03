@@ -1,13 +1,9 @@
 import csv
 from pathlib import Path
-from typing import TypeAlias
+from typing import Callable
 
 from proportional_ec.constants import STATE_PO
-
-Year: TypeAlias = int
-StatePo: TypeAlias = str
-Vote: TypeAlias = int
-Candidate: TypeAlias = str
+from proportional_ec.typing import Candidate, Seats, StatePo, Vote, Year
 
 
 def process_electoral_college_per_year(path: Path) -> dict[Year, dict[StatePo, Vote]]:
@@ -72,6 +68,13 @@ def process_candidate_totals(
 
             year_state_cand_votes[year][po][candidate] = votes
         return year_state_cand_votes, year_state_total_votes
+
+
+def run_election(
+    method: Callable[[dict[Candidate, Vote]], dict[Candidate, Seats]],
+    state_candidate_counts: dict[StatePo, dict[Candidate, Vote]],
+):
+    pass
 
 
 def calculate_quota(ec_votes: Vote, state_total_votes: Vote) -> Vote:
