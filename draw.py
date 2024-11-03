@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -10,12 +11,18 @@ def normalise_state(state: str) -> str:
     return STATE_PO[state.lower()]
 
 
+def load_topo_data(file_path: Path) -> gpd.GeoDataFrame:
+    gdf = gpd.read_file(file_path)
+    gdf["name"] = gdf["name"].apply(normalise_state)
+    return gdf
+
+
 def _hexagon_sort_order(points: tuple[tuple[float, float], ...]) -> tuple[float, float]:
     top_left = min(points)
     return top_left[1], -top_left[0]
 
 
-def generate_polygons_and_lines(
+def generate_polygons_centroids_and_lines(
     gdf: gpd.GeoDataFrame,
 ) -> tuple[
     dict[str, list[tuple[float, float]]],
@@ -80,14 +87,10 @@ def generate_polygons_and_lines(
     return state_polygons, state_centroids, state_borders
 
 
-if __name__ == "__main__":
-    gdf = gpd.read_file("tiles.topo.json")
-    gdf["name"] = gdf["name"].apply(normalise_state)
-
-    state_polygons, state_centroids, border_lines = generate_polygons_and_lines(gdf)
-
-    fig, ax = plt.subplots(figsize=(20, 10))
-
+def draw_state_polygons(
+    ax: plt.Axes,
+    state_polygons: dict[str, list[tuple[float, float]]],
+) -> None:
     for state in state_polygons:
         colours = ["blue", "red"]
         num = random.randint(0, len(state_polygons[state]))
@@ -101,10 +104,16 @@ if __name__ == "__main__":
                 ),
             )
 
+
+def draw_borders(ax: plt.Axes, border_lines: set[tuple[float, float]]) -> None:
     for border_line in border_lines:
         x_coords, y_coords = zip(*border_line)
         ax.plot(x_coords, y_coords, color="black", linewidth=2)
 
+
+def draw_state_names(
+    ax: plt.Axes, state_centroids: dict[str, tuple[float, float]]
+) -> None:
     for state in state_centroids:
         ax.text(
             state_centroids[state][0],
@@ -117,7 +126,31 @@ if __name__ == "__main__":
             fontweight="roman",
         )
 
+
+def draw_ec_map(
+    state_polygons: dict[str, list[tuple[float, float]]],
+    state_centroids: dict[str, tuple[float, float]],
+    border_lines: set[tuple[float, float]],
+) -> None:
+    fig, ax = plt.subplots(figsize=(20, 10))
+
+    draw_state_polygons(ax, state_polygons)
+    draw_borders(ax, border_lines)
+    draw_state_names(ax, state_centroids)
+
     ax.autoscale_view()
     ax.set_aspect("equal")
     ax.axis("off")
+    plt.savefig("out.png")
     plt.show()
+
+
+if __name__ == "__main__":
+    topo_file = Path("tiles.topo.json")
+    gdf = load_topo_data(topo_file)
+
+    state_polygons, state_centroids, border_lines = (
+        generate_polygons_centroids_and_lines(gdf)
+    )
+
+    draw_ec_map(state_polygons, state_centroids, border_lines)
