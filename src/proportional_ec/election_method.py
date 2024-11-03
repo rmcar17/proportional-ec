@@ -1,5 +1,6 @@
 from fractions import Fraction
 from math import floor
+
 from proportional_ec.typing import Candidate, Seats, Vote
 
 
