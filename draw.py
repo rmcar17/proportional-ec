@@ -3,6 +3,12 @@ import random
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
+from proportional_ec.constants import STATE_PO
+
+
+def normalise_state(state: str) -> str:
+    return STATE_PO[state.lower()]
+
 
 def _hexagon_sort_order(points: tuple[tuple[float, float], ...]) -> tuple[float, float]:
     top_left = min(points)
@@ -76,6 +82,8 @@ def generate_polygons_and_lines(
 
 if __name__ == "__main__":
     gdf = gpd.read_file("tiles.topo.json")
+    gdf["name"] = gdf["name"].apply(normalise_state)
+
     state_polygons, state_centroids, border_lines = generate_polygons_and_lines(gdf)
 
     fig, ax = plt.subplots(figsize=(20, 10))
