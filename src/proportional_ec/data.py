@@ -23,10 +23,7 @@ def load_electoral_college_per_year(path: Path) -> dict[Year, dict[StatePo, Vote
 
 def load_candidate_totals(
     path: Path,
-) -> tuple[
-    dict[Year, dict[StatePo, dict[Candidate, Vote]]],
-    dict[Year, dict[StatePo, dict[Candidate, Vote]]],
-]:
+) -> dict[Year, dict[StatePo, dict[Candidate, Vote]]]:
     year_state_cand_votes = {}
     year_state_total_votes = {}
     with path.open() as f:
@@ -53,6 +50,18 @@ def load_candidate_totals(
             year = int(year)
             votes = int(votes)
             total = int(total)
+
+            if candidate == "":
+                candidate = p_detailed
+                if candidate == "":
+                    if writein == "TRUE":
+                        candidate = "write in"
+                    elif writein == "NA":
+                        candidate = "unknown"
+                    else:
+                        print(year, state, po, candidate, p_detailed, writein)
+                        msg = "Not sufficient information for candidate."
+                        raise ValueError(msg)
             if year not in year_state_cand_votes:
                 year_state_cand_votes[year] = {}
                 year_state_total_votes[year] = {}
@@ -65,5 +74,29 @@ def load_candidate_totals(
                 msg = "Different vote totals"
                 raise ValueError(msg)
 
-            year_state_cand_votes[year][po][candidate] = votes
-        return year_state_cand_votes, year_state_total_votes
+            if candidate not in year_state_cand_votes[year][po]:
+                year_state_cand_votes[year][po][candidate] = votes
+            else:
+                # Some entries include candidates running for multiple parties
+                # e.g. Gerald Ford 1976 New York (Republican+Conservative)
+                year_state_cand_votes[year][po][candidate] += votes
+
+        for year in year_state_total_votes:
+            for state in year_state_total_votes[year]:
+                if (
+                    sum(year_state_cand_votes[year][state].values())
+                    != year_state_total_votes[year][state]
+                ):
+                    msg = "Votes for candidates do not sum to total votes."
+                    raise ValueError(msg)
+                for invalid_candidate in [
+                    "UNDERVOTES",
+                    "OVERVOTES",
+                    "unknown",
+                    "BLANK VOTE/SCATTERING",
+                    "BLANK VOTE",
+                    "OVER VOTE",
+                ]:
+                    if invalid_candidate in year_state_cand_votes[year][state]:
+                        del year_state_cand_votes[year][state][invalid_candidate]
+        return year_state_cand_votes
