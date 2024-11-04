@@ -28,5 +28,5 @@ if __name__ == "__main__":
         print(year, overall_results)
 
         topo_file = Path(f"data/topo_data/tiles{year}.topo.json")
-        draw_ec_map(topo_file, election_results, year_candidate_party[year])
+        draw_ec_map(topo_file, year, election_results, year_candidate_party[year])
         # break

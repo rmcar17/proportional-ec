@@ -335,17 +335,25 @@ def get_extremities(
 
 
 def normalise_name(candidate: Candidate) -> str:
-    candidate.replace('""', '"')
+    candidate = candidate.replace('""', '"')
 
-    is_junior = candidate.endswith("JR")
-    candidate.strip(" JR")
+    is_junior = candidate.endswith(" JR")
+    if is_junior:
+        candidate = candidate[:-2]
 
     candidate = candidate.title()
+
+    if candidate.startswith("Mc"):
+        candidate = candidate[:2] + candidate[2].upper() + candidate[3:]
+
     candidate = " ".join(reversed(candidate.split(", ")))
 
     if is_junior:
         candidate += " Jr."
     return candidate
+
+
+LEGEND_FIGURE_OFFSET = 10
 
 
 def draw_legend(
@@ -366,28 +374,35 @@ def draw_legend(
                 color="w",
                 markerfacecolor=party_colour,
                 markersize=10,
-                label=f"{normalise_name(candidate)} ({overall_results[candidate]} EVs)",
+                label=f"{normalise_name(candidate)} ({overall_results[candidate]} EV{"s" if overall_results[candidate] != 1 else ""})",
             ),
         )
-    # ax.legend(handles=handles, loc=(0.37, 0.88), title="Results")
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
     # Convert physical coordinates to data coordinates
     normalized_x = (
-        extremities.left + (extremities.right - extremities.left) / 2 - xlim[0]
+        extremities.left
+        - xlim[0]
+        - AGGREGATE_MAP_OFFSET
+        - AGGREGATE_BAR_WIDTH
+        - LEGEND_FIGURE_OFFSET
     ) / (xlim[1] - xlim[0])
-    normalized_y = (extremities.top - ylim[0]) / (ylim[1] - ylim[0])
+    normalized_y = (
+        extremities.bottom + (extremities.top - extremities.bottom) / 2 - ylim[0]
+    ) / (ylim[1] - ylim[0])
     ax.legend(
         handles=handles,
-        loc="center",
+        loc="center right",
         bbox_to_anchor=(normalized_x, normalized_y),
-        title="Results",
+        title="Election Results",
+        fontsize="large",
     )
 
 
 def draw_ec_map(
     topo_file: str | Path,
+    year: int,
     state_seats: dict[StatePo, dict[Candidate, Seats]],
     candidate_party: dict[Candidate, Party],
 ) -> None:
@@ -432,8 +447,16 @@ def draw_ec_map(
     draw_aggregate(ax, extremities, overall_results, candidate_party, candidate_order)
     draw_legend(ax, extremities, overall_results, candidate_party, candidate_order)
 
+    ax.set_title(
+        f"{year} Presidential Election",
+        loc="center",
+        fontsize=24,
+        x=0.41,
+        y=0.92,
+    )
     ax.autoscale_view()
     ax.set_aspect("equal")
     ax.axis("off")
+
     plt.savefig("out.png")
     plt.show()
