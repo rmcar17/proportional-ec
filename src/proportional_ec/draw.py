@@ -334,7 +334,7 @@ def normalise_name(candidate: Candidate) -> str:
 
     is_junior = candidate.endswith(" JR")
     if is_junior:
-        candidate = candidate[:-2]
+        candidate = candidate[:-3]
 
     candidate = candidate.title()
 
