@@ -454,4 +454,4 @@ def draw_ec_map(
     ax.set_aspect("equal")
     ax.axis("off")
 
-    plt.savefig(out_path, bbox_inches="tight", dpi=600)
+    plt.savefig(out_path, bbox_inches="tight", dpi=300)
