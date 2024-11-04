@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 
 from proportional_ec.constants import STATE_PO
-from proportional_ec.typing import Candidate, StatePo, Vote, Year
+from proportional_ec.typing import Candidate, Party, StatePo, Vote, Year
 
 
 def load_electoral_college_per_year(path: Path) -> dict[Year, dict[StatePo, Vote]]:
@@ -21,10 +21,14 @@ def load_electoral_college_per_year(path: Path) -> dict[Year, dict[StatePo, Vote
     return year_state_ev
 
 
-def load_candidate_totals(
+def load_candidate_totals_and_parties(
     path: Path,
-) -> dict[Year, dict[StatePo, dict[Candidate, Vote]]]:
+) -> tuple[
+    dict[Year, dict[StatePo, dict[Candidate, Vote]]],
+    dict[Year, dict[Candidate, Party]],
+]:
     year_state_cand_votes = {}
+    year_candidate_parties = {}
     year_state_total_votes = {}
     with path.open() as f:
         reader = csv.reader(f)
@@ -64,7 +68,15 @@ def load_candidate_totals(
                         raise ValueError(msg)
             if year not in year_state_cand_votes:
                 year_state_cand_votes[year] = {}
+                year_candidate_parties[year] = {}
                 year_state_total_votes[year] = {}
+
+            if candidate not in year_candidate_parties[year]:
+                year_candidate_parties[year][candidate] = {}
+
+            year_candidate_parties[year][candidate][p_detailed] = (
+                year_candidate_parties[year][candidate].get(p_detailed, 0) + votes
+            )
 
             if po not in year_state_cand_votes[year]:
                 year_state_cand_votes[year][po] = {}
@@ -99,4 +111,14 @@ def load_candidate_totals(
                 ]:
                     if invalid_candidate in year_state_cand_votes[year][state]:
                         del year_state_cand_votes[year][state][invalid_candidate]
-        return year_state_cand_votes
+
+        nominal_year_candidate_parties = {}
+        for year, candidate_parties in year_candidate_parties.items():
+            nominal_year_candidate_parties[year] = {}
+            for candidate, party_totals in candidate_parties.items():
+                nominal_year_candidate_parties[year][candidate] = max(
+                    party_totals,
+                    key=lambda x: party_totals[x],
+                )
+
+        return year_state_cand_votes, nominal_year_candidate_parties

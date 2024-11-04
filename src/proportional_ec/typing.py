@@ -5,3 +5,4 @@ StatePo: TypeAlias = str
 Vote: TypeAlias = int
 Candidate: TypeAlias = str
 Seats: TypeAlias = int
+Party: TypeAlias = str

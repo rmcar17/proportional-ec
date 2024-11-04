@@ -51,3 +51,13 @@ STATE_PO = {
     "wisconsin": "WI",
     "wyoming": "WY",
 }
+
+PARTY_COLOUR = {
+    "DEMOCRAT": "blue",
+    "REPUBLICAN": "red",
+    "INDEPENDENT": "grey",
+    "LIBERTARIAN": "gold",
+    "REFORM PARTY": "purple",
+    "GREEN": "forestgreen",
+    "NO PARTY AFFILIATION": "grey",
+}

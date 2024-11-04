@@ -1,13 +1,16 @@
 import random
+from collections.abc import Sequence
 from pathlib import Path
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
-from proportional_ec.constants import STATE_PO
+from proportional_ec.constants import PARTY_COLOUR, STATE_PO
+from proportional_ec.summarise import aggregate_election_results
+from proportional_ec.typing import Candidate, Party, Seats, StatePo
 
 
-def normalise_state(state: str) -> str:
+def normalise_state(state: str) -> StatePo:
     return STATE_PO[state.lower()]
 
 
@@ -18,15 +21,15 @@ def load_topo_data(file_path: Path) -> gpd.GeoDataFrame:
 
 
 def _hexagon_sort_order(points: tuple[tuple[float, float], ...]) -> tuple[float, float]:
-    top_left = min(points)
-    return top_left[1], -top_left[0]
+    top_left = max(points, key=lambda x: (x[1], -x[0]))
+    return -top_left[1], top_left[0]
 
 
 def generate_polygons_centroids_and_lines(
     gdf: gpd.GeoDataFrame,
 ) -> tuple[
-    dict[str, list[tuple[float, float]]],
-    dict[str, tuple[float, float]],
+    dict[StatePo, list[tuple[float, float]]],
+    dict[StatePo, tuple[float, float]],
     set[tuple[float, float]],
 ]:
     state_polygons = {}
@@ -89,16 +92,28 @@ def generate_polygons_centroids_and_lines(
 
 def draw_state_polygons(
     ax: plt.Axes,
-    state_polygons: dict[str, list[tuple[float, float]]],
+    state_polygons: dict[StatePo, list[tuple[float, float]]],
+    state_seats: dict[StatePo, dict[Candidate, Seats]],
+    candidate_party: dict[Candidate, Party],
+    candidate_order: Sequence[Candidate],
 ) -> None:
-    for state in state_polygons:
-        colours = ["blue", "red"]
-        num = random.randint(0, len(state_polygons[state]))
-        for i, polygon in enumerate(state_polygons[state]):
+    for state, polygons in state_polygons.items():
+        colours = [
+            PARTY_COLOUR[candidate_party[candidate]]
+            for candidate in candidate_order
+            if candidate in state_seats[state]
+            for _ in range(state_seats[state][candidate])
+        ]
+
+        if len(colours) != len(polygons):
+            msg = "Incorrect number of seats allocated."
+            raise ValueError(msg)
+
+        for i, polygon in enumerate(polygons):
             ax.add_patch(
                 plt.Polygon(
                     polygon,
-                    facecolor=colours[i < num],
+                    facecolor=colours[i],
                     edgecolor="lightgrey",
                     alpha=0.5,
                 ),
@@ -113,7 +128,7 @@ def draw_borders(ax: plt.Axes, border_lines: set[tuple[float, float]]) -> None:
 
 def draw_state_names(
     ax: plt.Axes,
-    state_centroids: dict[str, tuple[float, float]],
+    state_centroids: dict[StatePo, tuple[float, float]],
 ) -> None:
     for state in state_centroids:
         ax.text(
@@ -129,13 +144,32 @@ def draw_state_names(
 
 
 def draw_ec_map(
-    state_polygons: dict[str, list[tuple[float, float]]],
-    state_centroids: dict[str, tuple[float, float]],
-    border_lines: set[tuple[float, float]],
+    topo_file: str | Path,
+    state_seats: dict[StatePo, dict[Candidate, Seats]],
+    candidate_party: dict[Candidate, Party],
 ) -> None:
+    overall_results = aggregate_election_results(state_seats)
+    candidate_order = sorted(
+        overall_results,
+        key=lambda x: overall_results[x],
+        reverse=True,
+    )
+    candidate_order.append(candidate_order.pop(1))  # Winner on top, runner up on bottom
+    print(candidate_order)
+
+    state_polygons, state_centroids, border_lines = (
+        generate_polygons_centroids_and_lines(load_topo_data(topo_file))
+    )
+
     fig, ax = plt.subplots(figsize=(20, 10))
 
-    draw_state_polygons(ax, state_polygons)
+    draw_state_polygons(
+        ax,
+        state_polygons,
+        state_seats,
+        candidate_party,
+        candidate_order,
+    )
     draw_borders(ax, border_lines)
     draw_state_names(ax, state_centroids)
 
