@@ -6,10 +6,13 @@ from pathlib import Path
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from matplotlib.patheffects import withStroke
 
 from proportional_ec.constants import PARTY_COLOUR, STATE_PO
 from proportional_ec.summarise import aggregate_election_results
 from proportional_ec.typing import Candidate, Party, Seats, StatePo
+
+TEXT_PATH_EFFECTS = [withStroke(linewidth=3, foreground="black")]
 
 
 def normalise_state(state: str) -> StatePo:
@@ -139,7 +142,8 @@ def draw_state_names(
             state,
             horizontalalignment="center",
             verticalalignment="center",
-            color="black",
+            color="white",
+            path_effects=TEXT_PATH_EFFECTS,
             fontfamily="sans-serif",
             fontweight="roman",
         )
@@ -151,6 +155,69 @@ class Extremities:
     bottom: float
     left: float
     right: float
+
+
+AGGREGATE_MAP_OFFSET = 50
+AGGREGATE_BAR_WIDTH = 60
+AGGREGATE_TEXT_OFFSET = 20
+
+
+def draw_aggregate(
+    ax: plt.Axes,
+    extremities: Extremities,
+    overall_results: dict[Candidate, Seats],
+    candidate_party: dict[Candidate, Party],
+    candidate_order: Sequence[Candidate],
+) -> None:
+    # Go from bottom up, runner up at bottom, winner at top
+    candidate_order = candidate_order[1:] + [candidate_order[0]]
+
+    aggregate_bar_height = extremities.top - extremities.bottom
+
+    total_seats = sum(overall_results.values())
+
+    sub_bar_position = (
+        extremities.left - AGGREGATE_MAP_OFFSET - AGGREGATE_BAR_WIDTH,
+        extremities.bottom,
+    )
+    for i, candidate in enumerate(candidate_order):
+        sub_bar_height = (
+            Fraction(overall_results[candidate], total_seats) * aggregate_bar_height
+        )
+        rect = plt.Rectangle(
+            sub_bar_position,
+            AGGREGATE_BAR_WIDTH,
+            sub_bar_height,
+            facecolor=PARTY_COLOUR[candidate_party[candidate]],
+            edgecolor="black",
+            alpha=0.5,
+        )
+        ax.add_patch(rect)
+
+        if overall_results[candidate] > 50:
+            x = sub_bar_position[0] + AGGREGATE_BAR_WIDTH / 2
+            if i == 0:
+                y = sub_bar_position[1] + AGGREGATE_TEXT_OFFSET
+                va = "bottom"
+            elif i == len(candidate_order) - 1:
+                y = sub_bar_position[1] + sub_bar_height - AGGREGATE_TEXT_OFFSET
+                va = "top"
+            else:
+                y = sub_bar_position[1] + sub_bar_height / 2
+                va = "center"
+            ax.text(
+                x,
+                y,
+                str(overall_results[candidate]),
+                fontweight="roman",
+                fontfamily="sans-serif",
+                horizontalalignment="center",
+                verticalalignment=va,
+                color="white",
+                path_effects=TEXT_PATH_EFFECTS,
+            )
+
+        sub_bar_position = (sub_bar_position[0], sub_bar_position[1] + sub_bar_height)
 
 
 BREAK_DOWN_MAP_OFFSET = 50
@@ -202,7 +269,8 @@ def draw_state_break_down(
                 state_pos[state_index],
                 horizontalalignment="center",
                 verticalalignment="center",
-                color="black",
+                color="white",
+                path_effects=TEXT_PATH_EFFECTS,
                 fontfamily="sans-serif",
                 fontweight="roman",
             )
@@ -232,7 +300,8 @@ def draw_state_break_down(
                     state_seats[state_pos[state_index]].get(candidate, 0),
                     horizontalalignment="center",
                     verticalalignment="center",
-                    color="black",
+                    color="white",
+                    path_effects=TEXT_PATH_EFFECTS,
                     fontfamily="sans-serif",
                     fontweight="roman",
                 )
@@ -294,17 +363,21 @@ def draw_ec_map(
     draw_borders(ax, border_lines)
     draw_state_names(ax, state_centroids)
 
+    extremities = get_extremities(state_polygons)
+    candidate_order = sorted(
+        overall_results,
+        key=lambda x: overall_results[x],
+        reverse=True,
+    )
     draw_state_break_down(
         ax,
-        get_extremities(state_polygons),
+        extremities,
         state_seats,
         candidate_party,
-        sorted(
-            overall_results,
-            key=lambda x: overall_results[x],
-            reverse=True,
-        ),
+        candidate_order,
     )
+
+    draw_aggregate(ax, extremities, overall_results, candidate_party, candidate_order)
 
     ax.autoscale_view()
     ax.set_aspect("equal")
