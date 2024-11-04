@@ -1,7 +1,7 @@
-from fractions import Fraction
 import random
 from collections.abc import Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 from math import ceil
 from pathlib import Path
 
@@ -162,14 +162,18 @@ def draw_state_break_down(
     fig: plt.Figure,
     ax: plt.Axes,
     extremities: Extremities,
+    state_seats: dict[StatePo, dict[Candidate, Seats]],
+    candidate_party: dict[Candidate, Party],
+    candidate_order: Sequence[Candidate],
 ) -> None:
     ax.plot(
         [extremities.left, extremities.right, extremities.right, extremities.left],
         [extremities.bottom, extremities.top, extremities.bottom, extremities.bottom],
     )
 
-    horizontal_offset = 50
+    state_box_width = 40
     state_box_height = 40
+    horizontal_offset = state_box_width * (len(candidate_order) + 1.5)
 
     state_spaces_per_column = ceil(Fraction(len(STATE_PO) / BREAK_DOWN_COLUMNS))
 
@@ -185,14 +189,16 @@ def draw_state_break_down(
             )
             rect = plt.Rectangle(
                 state_name_position,
+                state_box_width,
                 state_box_height,
-                state_box_height,
-                facecolor="white",
+                facecolor="grey",
                 edgecolor="black",
+                alpha=0.5,
             )
             ax.add_patch(rect)
+
             t = ax.text(
-                state_name_position[0] + state_box_height / 2,
+                state_name_position[0] + state_box_width / 2,
                 extremities.top - row * vertical_offset - state_box_height / 2,
                 state_pos[state_index],
                 horizontalalignment="center",
@@ -201,6 +207,21 @@ def draw_state_break_down(
                 fontfamily="sans-serif",
                 fontweight="roman",
             )
+
+            for i, candidate in enumerate(candidate_order):
+                rect = plt.Rectangle(
+                    (
+                        state_name_position[0] + (i + 1) * state_box_width,
+                        state_name_position[1],
+                    ),
+                    state_box_width,
+                    state_box_height,
+                    facecolor=PARTY_COLOUR[candidate_party[candidate]],
+                    edgecolor="black",
+                    alpha=0.6,
+                )
+                ax.add_patch(rect)
+
             state_index += 1
             if state_index >= len(state_pos):
                 break
@@ -256,7 +277,18 @@ def draw_ec_map(
     draw_borders(ax, border_lines)
     draw_state_names(ax, state_centroids)
 
-    draw_state_break_down(fig, ax, get_extremities(state_polygons))
+    draw_state_break_down(
+        fig,
+        ax,
+        get_extremities(state_polygons),
+        state_seats,
+        candidate_party,
+        sorted(
+            overall_results,
+            key=lambda x: overall_results[x],
+            reverse=True,
+        ),
+    )
 
     ax.autoscale_view()
     ax.set_aspect("equal")
