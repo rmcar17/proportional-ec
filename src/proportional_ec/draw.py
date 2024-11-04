@@ -396,6 +396,7 @@ def draw_legend(
 
 
 def draw_ec_map(
+    out_path: str | Path,
     topo_file: str | Path,
     year: int,
     state_seats: dict[StatePo, dict[Candidate, Seats]],
@@ -453,5 +454,4 @@ def draw_ec_map(
     ax.set_aspect("equal")
     ax.axis("off")
 
-    plt.savefig("out.png")
-    plt.show()
+    plt.savefig(out_path, bbox_inches="tight", dpi=600)
