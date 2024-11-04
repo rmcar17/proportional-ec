@@ -1,5 +1,8 @@
+from fractions import Fraction
 import random
 from collections.abc import Sequence
+from dataclasses import dataclass
+from math import ceil
 from pathlib import Path
 
 import geopandas as gpd
@@ -134,13 +137,93 @@ def draw_state_names(
         ax.text(
             state_centroids[state][0],
             state_centroids[state][1],
-            state[:2],
+            state,
             horizontalalignment="center",
             verticalalignment="center",
             color="black",
             fontfamily="sans-serif",
             fontweight="roman",
         )
+
+
+@dataclass
+class Extremities:
+    top: float
+    bottom: float
+    left: float
+    right: float
+
+
+BREAK_DOWN_MAP_OFFSET = 100
+BREAK_DOWN_COLUMNS = 4
+
+
+def draw_state_break_down(
+    fig: plt.Figure,
+    ax: plt.Axes,
+    extremities: Extremities,
+) -> None:
+    ax.plot(
+        [extremities.left, extremities.right, extremities.right, extremities.left],
+        [extremities.bottom, extremities.top, extremities.bottom, extremities.bottom],
+    )
+
+    horizontal_offset = 50
+    state_box_height = 40
+
+    state_spaces_per_column = ceil(Fraction(len(STATE_PO) / BREAK_DOWN_COLUMNS))
+
+    vertical_offset = (extremities.top - extremities.bottom) / (state_spaces_per_column)
+
+    state_pos = sorted(STATE_PO.values())
+    state_index = 0
+    for column in range(BREAK_DOWN_COLUMNS):
+        for row in range(state_spaces_per_column):
+            state_name_position = (
+                extremities.right + BREAK_DOWN_MAP_OFFSET + horizontal_offset * column,
+                extremities.top - state_box_height - row * vertical_offset,
+            )
+            rect = plt.Rectangle(
+                state_name_position,
+                state_box_height,
+                state_box_height,
+                facecolor="white",
+                edgecolor="black",
+            )
+            ax.add_patch(rect)
+            t = ax.text(
+                state_name_position[0] + state_box_height / 2,
+                extremities.top - row * vertical_offset - state_box_height / 2,
+                state_pos[state_index],
+                horizontalalignment="center",
+                verticalalignment="center",
+                color="black",
+                fontfamily="sans-serif",
+                fontweight="roman",
+            )
+            state_index += 1
+            if state_index >= len(state_pos):
+                break
+        if state_index >= len(state_pos):
+            break
+
+
+def get_extremities(
+    state_polygons: dict[StatePo, list[tuple[float, float]]],
+) -> Extremities:
+    top = float("-inf")
+    bottom = float("inf")
+    left = float("inf")
+    right = float("-inf")
+
+    for state in state_polygons:
+        for points in state_polygons[state]:
+            for x, y in points:
+                top = max(top, y)
+                bottom = min(bottom, y)
+                left = min(left, x)
+                right = max(right, x)
+    return Extremities(top, bottom, left, right)
 
 
 def draw_ec_map(
@@ -172,6 +255,8 @@ def draw_ec_map(
     )
     draw_borders(ax, border_lines)
     draw_state_names(ax, state_centroids)
+
+    draw_state_break_down(fig, ax, get_extremities(state_polygons))
 
     ax.autoscale_view()
     ax.set_aspect("equal")
