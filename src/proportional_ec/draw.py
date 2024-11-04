@@ -154,8 +154,10 @@ class Extremities:
     right: float
 
 
-BREAK_DOWN_MAP_OFFSET = 100
-BREAK_DOWN_COLUMNS = 4
+BREAK_DOWN_MAP_OFFSET = 50
+BREAK_DOWN_COLUMNS = 3
+STATE_BOX_WIDTH = 40
+STATE_BOX_HEIGHT = 40
 
 
 def draw_state_break_down(
@@ -171,9 +173,7 @@ def draw_state_break_down(
         [extremities.bottom, extremities.top, extremities.bottom, extremities.bottom],
     )
 
-    state_box_width = 40
-    state_box_height = 40
-    horizontal_offset = state_box_width * (len(candidate_order) + 1.5)
+    horizontal_offset = STATE_BOX_WIDTH * (len(candidate_order) + 1.5)
 
     state_spaces_per_column = ceil(Fraction(len(STATE_PO) / BREAK_DOWN_COLUMNS))
 
@@ -181,25 +181,28 @@ def draw_state_break_down(
 
     state_pos = sorted(STATE_PO.values())
     state_index = 0
+    current_horizontal_offset = 0
     for column in range(BREAK_DOWN_COLUMNS):
+        horizontal_start = extremities.right + BREAK_DOWN_MAP_OFFSET
+        max_boxes_in_row = 1
         for row in range(state_spaces_per_column):
             state_name_position = (
-                extremities.right + BREAK_DOWN_MAP_OFFSET + horizontal_offset * column,
-                extremities.top - state_box_height - row * vertical_offset,
+                horizontal_start + current_horizontal_offset,
+                extremities.top - STATE_BOX_HEIGHT - row * vertical_offset,
             )
             rect = plt.Rectangle(
                 state_name_position,
-                state_box_width,
-                state_box_height,
+                STATE_BOX_WIDTH,
+                STATE_BOX_HEIGHT,
                 facecolor="grey",
                 edgecolor="black",
                 alpha=0.5,
             )
             ax.add_patch(rect)
 
-            t = ax.text(
-                state_name_position[0] + state_box_width / 2,
-                extremities.top - row * vertical_offset - state_box_height / 2,
+            ax.text(
+                state_name_position[0] + STATE_BOX_WIDTH / 2,
+                extremities.top - row * vertical_offset - STATE_BOX_HEIGHT / 2,
                 state_pos[state_index],
                 horizontalalignment="center",
                 verticalalignment="center",
@@ -208,23 +211,42 @@ def draw_state_break_down(
                 fontweight="roman",
             )
 
+            skipped = 0
             for i, candidate in enumerate(candidate_order):
+                if state_seats[state_pos[state_index]].get(candidate, 0) == 0:
+                    skipped += 1
+                    continue
+
+                state_candidate_result_position = (
+                    state_name_position[0] + (i + 1 - skipped) * STATE_BOX_WIDTH,
+                    state_name_position[1],
+                )
                 rect = plt.Rectangle(
-                    (
-                        state_name_position[0] + (i + 1) * state_box_width,
-                        state_name_position[1],
-                    ),
-                    state_box_width,
-                    state_box_height,
+                    state_candidate_result_position,
+                    STATE_BOX_WIDTH,
+                    STATE_BOX_HEIGHT,
                     facecolor=PARTY_COLOUR[candidate_party[candidate]],
                     edgecolor="black",
-                    alpha=0.6,
+                    alpha=0.5,
                 )
                 ax.add_patch(rect)
+                ax.text(
+                    state_candidate_result_position[0] + STATE_BOX_WIDTH / 2,
+                    state_candidate_result_position[1] + STATE_BOX_HEIGHT / 2,
+                    state_seats[state_pos[state_index]].get(candidate, 0),
+                    horizontalalignment="center",
+                    verticalalignment="center",
+                    color="black",
+                    fontfamily="sans-serif",
+                    fontweight="roman",
+                )
+            not_skipped = len(candidate_order) - skipped
+            max_boxes_in_row = max(max_boxes_in_row, not_skipped + 1)
 
             state_index += 1
             if state_index >= len(state_pos):
                 break
+        current_horizontal_offset += STATE_BOX_WIDTH * (max_boxes_in_row + 0.5)
         if state_index >= len(state_pos):
             break
 
@@ -259,7 +281,6 @@ def draw_ec_map(
         reverse=True,
     )
     candidate_order.append(candidate_order.pop(1))  # Winner on top, runner up on bottom
-    print(candidate_order)
 
     state_polygons, state_centroids, border_lines = (
         generate_polygons_centroids_and_lines(load_topo_data(topo_file))

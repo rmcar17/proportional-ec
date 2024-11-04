@@ -28,8 +28,6 @@ if __name__ == "__main__":
         overall_results = aggregate_election_results(election_results)
 
         print(year, overall_results)
-        for candidate in overall_results:
-            print(candidate, year_candidate_party[year][candidate])
 
         topo_file = Path(f"data/topo_data/tiles{2020}.topo.json")
         draw_ec_map(topo_file, election_results, year_candidate_party[year])
