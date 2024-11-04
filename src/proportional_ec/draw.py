@@ -1,4 +1,3 @@
-import random
 from collections.abc import Sequence
 from dataclasses import dataclass
 from fractions import Fraction
@@ -39,7 +38,7 @@ def generate_polygons_centroids_and_lines(
     state_centroids = {}
     state_border_edges = {}
     # Hexagon collections for each state
-    for state, geom in zip(gdf.name, gdf.geometry):
+    for state, geom in zip(gdf.name, gdf.geometry, strict=True):
         if geom.geom_type != "MultiPolygon":
             msg = "Unexpected geometry type"
             raise ValueError(msg)
@@ -74,7 +73,7 @@ def generate_polygons_centroids_and_lines(
                 edge = (min(start, end), max(start, end))
                 edge_counts[edge] = edge_counts.get(edge, 0) + 1
 
-        state_centroids[state] = next(zip(*closest_centroid_polygon.xy))
+        state_centroids[state] = next(zip(*closest_centroid_polygon.xy, strict=True))
         # Ensure consistent order
         state_polygons[state].sort(key=_hexagon_sort_order)
 
@@ -125,7 +124,7 @@ def draw_state_polygons(
 
 def draw_borders(ax: plt.Axes, border_lines: set[tuple[float, float]]) -> None:
     for border_line in border_lines:
-        x_coords, y_coords = zip(*border_line)
+        x_coords, y_coords = zip(*border_line, strict=True)
         ax.plot(x_coords, y_coords, color="black", linewidth=2)
 
 
@@ -161,7 +160,6 @@ STATE_BOX_HEIGHT = 40
 
 
 def draw_state_break_down(
-    fig: plt.Figure,
     ax: plt.Axes,
     extremities: Extremities,
     state_seats: dict[StatePo, dict[Candidate, Seats]],
@@ -173,8 +171,6 @@ def draw_state_break_down(
         [extremities.bottom, extremities.top, extremities.bottom, extremities.bottom],
     )
 
-    horizontal_offset = STATE_BOX_WIDTH * (len(candidate_order) + 1.5)
-
     state_spaces_per_column = ceil(Fraction(len(STATE_PO) / BREAK_DOWN_COLUMNS))
 
     vertical_offset = (extremities.top - extremities.bottom) / (state_spaces_per_column)
@@ -182,7 +178,7 @@ def draw_state_break_down(
     state_pos = sorted(STATE_PO.values())
     state_index = 0
     current_horizontal_offset = 0
-    for column in range(BREAK_DOWN_COLUMNS):
+    for _ in range(BREAK_DOWN_COLUMNS):
         horizontal_start = extremities.right + BREAK_DOWN_MAP_OFFSET
         max_boxes_in_row = 1
         for row in range(state_spaces_per_column):
@@ -299,7 +295,6 @@ def draw_ec_map(
     draw_state_names(ax, state_centroids)
 
     draw_state_break_down(
-        fig,
         ax,
         get_extremities(state_polygons),
         state_seats,

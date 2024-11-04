@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from proportional_ec.typing import Candidate, Seats, StatePo, Vote
 
@@ -31,6 +31,4 @@ def run_election(
             state_ec_votes[state],
         )
 
-    state_results = _filter_results(state_results)
-
-    return state_results
+    return _filter_results(state_results)
