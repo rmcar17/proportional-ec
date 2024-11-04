@@ -233,11 +233,6 @@ def draw_state_break_down(
     candidate_party: dict[Candidate, Party],
     candidate_order: Sequence[Candidate],
 ) -> None:
-    ax.plot(
-        [extremities.left, extremities.right, extremities.right, extremities.left],
-        [extremities.bottom, extremities.top, extremities.bottom, extremities.bottom],
-    )
-
     state_spaces_per_column = ceil(Fraction(len(STATE_PO) / BREAK_DOWN_COLUMNS))
 
     vertical_offset = (extremities.top - extremities.bottom) / (state_spaces_per_column)
