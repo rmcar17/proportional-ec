@@ -18,17 +18,15 @@ if __name__ == "__main__":
     )
 
     for year in year_candidate_totals:
-        # year = 2020
-
         election_results = run_election(
             run_droop_quota_largest_remainder,
             year_candidate_totals[year],
-            year_ec_votes[2020],
+            year_ec_votes[year],
         )
         overall_results = aggregate_election_results(election_results)
 
         print(year, overall_results)
 
-        topo_file = Path(f"data/topo_data/tiles{2020}.topo.json")
+        topo_file = Path(f"data/topo_data/tiles{year}.topo.json")
         draw_ec_map(topo_file, election_results, year_candidate_party[year])
         # break

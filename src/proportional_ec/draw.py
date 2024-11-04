@@ -194,7 +194,7 @@ def draw_aggregate(
         )
         ax.add_patch(rect)
 
-        if overall_results[candidate] > 50:
+        if overall_results[candidate] > 30:
             x = sub_bar_position[0] + AGGREGATE_BAR_WIDTH / 2
             if i == 0:
                 y = sub_bar_position[1] + AGGREGATE_TEXT_OFFSET
@@ -334,6 +334,58 @@ def get_extremities(
     return Extremities(top, bottom, left, right)
 
 
+def normalise_name(candidate: Candidate) -> str:
+    candidate.replace('""', '"')
+
+    is_junior = candidate.endswith("JR")
+    candidate.strip(" JR")
+
+    candidate = candidate.title()
+    candidate = " ".join(reversed(candidate.split(", ")))
+
+    if is_junior:
+        candidate += " Jr."
+    return candidate
+
+
+def draw_legend(
+    ax: plt.Axes,
+    extremities: Extremities,
+    overall_results: dict[Candidate, Seats],
+    candidate_party: dict[Candidate, Party],
+    candidate_order: Sequence[Candidate],
+) -> None:
+    handles = []
+    for candidate in candidate_order:
+        party_colour = PARTY_COLOUR[candidate_party[candidate]]
+        handles.append(
+            plt.Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                markerfacecolor=party_colour,
+                markersize=10,
+                label=f"{normalise_name(candidate)} ({overall_results[candidate]} EVs)",
+            ),
+        )
+    # ax.legend(handles=handles, loc=(0.37, 0.88), title="Results")
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    # Convert physical coordinates to data coordinates
+    normalized_x = (
+        extremities.left + (extremities.right - extremities.left) / 2 - xlim[0]
+    ) / (xlim[1] - xlim[0])
+    normalized_y = (extremities.top - ylim[0]) / (ylim[1] - ylim[0])
+    ax.legend(
+        handles=handles,
+        loc="center",
+        bbox_to_anchor=(normalized_x, normalized_y),
+        title="Results",
+    )
+
+
 def draw_ec_map(
     topo_file: str | Path,
     state_seats: dict[StatePo, dict[Candidate, Seats]],
@@ -378,6 +430,7 @@ def draw_ec_map(
     )
 
     draw_aggregate(ax, extremities, overall_results, candidate_party, candidate_order)
+    draw_legend(ax, extremities, overall_results, candidate_party, candidate_order)
 
     ax.autoscale_view()
     ax.set_aspect("equal")
